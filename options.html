@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<script>
+
+function save() {
+  var prefs = {}; // JSON.parse(localStorage.prefs);
+  prefs.allow_uppercase = document.getElementById("uppercase").checked;
+  prefs.allow_numbers = document.getElementById("numbers").checked;
+  prefs.optimize_for_dvorak = document.getElementById("dvorak").checked;
+  prefs.only_one_char = document.getElementById("one_char").checked;
+  localStorage.prefs = JSON.stringify(prefs);
+}
+
+// Make sure the checkbox checked state gets properly initialized from the
+// saved preference.
+window.onload = function() {
+  var prefs = JSON.parse(localStorage.prefs);
+  document.getElementById("uppercase").checked = prefs.allow_uppercase;
+  document.getElementById("numbers").checked = prefs.allow_numbers;
+  document.getElementById("dvorak").checked = prefs.optimize_for_dvorak;
+  document.getElementById("one_char").checked = prefs.only_one_char;
+}
+
+</script>
+</head>
+<body>
+<h2>Options for the Ctrl-Access extension</h2>
+Allow uppercase: <input id="uppercase" type="checkbox" onclick="save()"><br/>
+Allow numbers: <input id="numbers" type="checkbox" onclick="save()"><br/>
+Optimize for Dvorak: <input id="dvorak" type="checkbox" onclick="save()"><br/>
+Only allow one character shortcuts:
+    <input id="one_char" type="checkbox" onclick="save()">
+
+</body>
+</html>

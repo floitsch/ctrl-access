@@ -3,6 +3,7 @@
   "version": "0.1",
   "description": "Enable Access shortcuts using ctrl-keypresses.",
   "permissions": ["tabs"],
+  "background_page": "bg.html",
   "content_scripts": [
   {
     "matches": ["*://*/*"],
@@ -11,5 +12,6 @@
     "run_at": "document_end",
     "all_frames": true
   }
-  ]
+  ],
+  "options_page": "options.html"
 }

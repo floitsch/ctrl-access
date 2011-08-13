@@ -12,3 +12,18 @@
   position: absolute;
   z-index: 10000;
 }
+
+.ctrl_access_popup_inactive {
+  background: rgba(230, 200, 200, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-bottom-left-radius: 3px 3px;
+  border-bottom-right-radius: 3px 3px;
+  border-top-left-radius: 3px 3px;
+  border-top-right-radius: 3px 3px;
+  color: rgba(0, 0, 0, 0.8);
+  font-size: 15px;
+  line-height: 18px;
+  padding: 1px 2px;
+  position: absolute;
+  z-index: 10000;
+}

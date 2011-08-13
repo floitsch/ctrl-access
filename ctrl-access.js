@@ -1,10 +1,38 @@
+var preferences = {
+  "allow_uppercase": true,
+  "allow_numbers": true,
+  "optimize_for_dvorak": false
+};
+
+chrome.extension.sendRequest({method: "getLocalStoragePrefs"},
+                             function(response) {
+  preferences = JSON.parse(response.prefs);
+});
+
+function getPreferences() {
+  return preferences;
+}
+
 var keycodes = {
   shift: 16,
   control: 17
 };
 
-var allowedShortcuts =
-    "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function getAllowedKeys() {
+  var prefs = getPreferences();
+  // Ad-hoc reordering of the alphabet which moves "easy-to-type" keys to the
+  // front. Keys that look similar have been removed (I, l and 1, 0 and O).
+  var allKeys = prefs.optimize_for_dvorak ?
+      "ueoahtnsidpgcrqjkwvmbxyfzUEAHTNSDPGCRLQJKVWMBXYFZ23456789".split("") :
+      "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789".split("");
+  if (!prefs.allow_uppercase) {
+    allKeys = allKeys.filter(function(c) { return c == c.toLowerCase(); });
+  }
+  if (!prefs.allow_numbers) {
+    allKeys = allKeys.filter(function(c) { return !/[0-9]/.check(c); });
+  }
+  return allKeys;
+}
 
 function simulateClick(el) {
   el.focus();
@@ -15,19 +43,34 @@ function simulateClick(el) {
 }
 
 function isClickable(el) {
-  return elAtPosition.onClick ||
-         elAtPosition.tagName == 'A' ||
-         elAtPosition.tagName == 'INPUT' ||
-         elAtPosition.tagName == 'TEXTAREA';
+  return el.onclick ||
+         el.onmousedown ||
+         el.tagName == 'A' ||
+         el.tagName == 'INPUT' ||
+         el.tagName == 'TEXTAREA';
+}
+
+function computeCssProperty(el, prop) {
+  var value = el.style[prop];
+  if (!value || value == 'auto') {
+    var css = document.defaultView.getComputedStyle(el, null);
+    value = css ? css[prop] : null;
+  }
+  return value;
 }
 
 function computeAbsolutePosition(el) {
   var pos =  { x: el.offsetLeft, y: el.offsetTop };
   while (el.offsetParent) {
     el = el.offsetParent;
+    if (computeCssProperty(el, 'position') == 'fixed') {
+      pos.x += window.pageXOffset;
+      pos.y += window.pageYOffset;
+      break;
+    }
     pos.x += el.offsetLeft;
     pos.y += el.offsetTop;
-    if (el != document.body && 
+    if (el != document.body &&
         el != document.documentElement) {
       pos.x -= el.scrollLeft;
       pos.y -= el.scrollTop;
@@ -86,11 +129,7 @@ function normalizeChar(c) {
               'ú': 'u', 'ü': 'u', 'ù': 'u', 'û': 'u',
               'í': 'i', 'ï': 'i', 'ì': 'i', 'î': 'i',
               'ç': 'c', 'ß': 's', 'ñ': 'n' };
-  var normalized = map[c] || c;
-  if (allowedShortcuts.indexOf(normalized) >= 0) {
-    return normalized;
-  }
-  return false;
+  return map[c] || c;
 }
 
 function computePreferredShortcuts(el) {
@@ -102,9 +141,9 @@ function computePreferredShortcuts(el) {
   if (!str) { str = el.alt; }
   if (!str) { str = el.name; }
   if (!str) { str = el.id; }
-  if (!str) return "";
+  if (!str) return [];
   str = str.toLowerCase();
-  var preferred = "";
+  var preferred = [];
   var nextIsPreferred = true;
   for (var i = 0; i < str.length; ++i) {
     if (str[i] == ' ') {
@@ -112,11 +151,12 @@ function computePreferredShortcuts(el) {
       continue;
     }
     if (nextIsPreferred) {
-      preferred += str[i];
+      preferred.push(normalizeChar(str[i]));
     }
     nextIsPreferred = false;
   }
-  return preferred + str;  // Simply append all characters. (Yields duplicates.)
+  // Simply append all characters. (Yields duplicates.)
+  return preferred.concat(str.split("").map(normalizeChar));
 }
 
 var popups = [];
@@ -166,6 +206,8 @@ function showShortcuts() {
     }
   }
 
+  var allowedKeys = getAllowedKeys();
+
   // Now find all links, text-fields and buttons.
   for (var i = 0; i < allElements.length; ++i) {
     var el = allElements[i];
@@ -178,11 +220,15 @@ function showShortcuts() {
       }
     }
     if (isClickable(el)) {
-      var preferred = computePreferredShortcuts(el);
-      var possible = preferred + allowedShortcuts;
+      var preferred = computePreferredShortcuts(el).filter(function(c) {
+        // Filter out the keys that are not allowed.
+        return allowedKeys.some(function(c2) { return c == c2; });
+      });
+      // "possible" will probably have duplicated entries.
+      var possible = preferred.concat(allowedKeys);
       var shortcut = false;
       for (var j = 0; j < possible.length; ++j) {
-        var c = normalizeChar(possible[j]);
+        var c = possible[j];
         if (c && !(c in assignedShortcuts)) {
           // We found a free character.
           shortcut = c;
@@ -194,11 +240,11 @@ function showShortcuts() {
         // No need to continue cycling through the other elements.
         break;
       }
-      var isShown = createAndShowPopup(el, c);
+      var isShown = createAndShowPopup(el, shortcut);
       if (!isShown) continue;
-      assignedShortcuts[c] = true;
+      assignedShortcuts[shortcut] = true;
       if (el.nodeName == 'A') {
-        urlMap[el.href] = c;
+        urlMap[el.href] = shortcut;
       }
     }
   }
@@ -225,6 +271,7 @@ function findShortcutTarget(code, shift) {
 function init() {
   var isShowingShortcuts = false;
   var isWaitingForCtrlUp = false;
+  var justExecutedCtrlClick = false;
 
   function installEventListeners(rootNode) {
     var doc = rootNode.contentDocument || rootNode;
@@ -235,6 +282,7 @@ function init() {
     }
 
     body.addEventListener('keydown', function(ev) {
+      justExecutedCtrlClick = false;
       var code = ev.keyCode;
       if (code == keycodes.control) {
         isWaitingForCtrlUp = true;
@@ -248,8 +296,9 @@ function init() {
       var target = findShortcutTarget(ev.keyCode, ev.shiftKey);
       isShowingShortcuts = false;
       hideShortcuts();
+      justExecutedCtrlClick = true;
       if (target) simulateClick(target);
-    }, false);
+    }, true);
 
     body.addEventListener('keyup', function(ev) {
       var code = ev.keyCode;
@@ -259,14 +308,20 @@ function init() {
             hideShortcuts();
           }
           isShowingShortcuts = !isShowingShortcuts;
+          ev.stopPropagation();
+          ev.preventDefault();
         }
         if (isShowingShortcuts) {
           showShortcuts();
         }
       } else {
         isWaitingForCtrlUp = false;
+        if (justExecutedCtrlClick) {
+          ev.stopPropagation();
+          ev.preventDefault();
+        }
       }
-    }, false);
+    }, true);
 
     var mouseHandler = function(ev) {
       if (isShowingShortcuts) {
