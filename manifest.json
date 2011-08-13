@@ -1,0 +1,15 @@
+{
+  "name": "ctrl-access",
+  "version": "0.1",
+  "description": "Enable Access shortcuts using ctrl-keypresses.",
+  "permissions": ["tabs"],
+  "content_scripts": [
+  {
+    "matches": ["*://*/*"],
+    "js": ["ctrl-access.js"],
+    "css": ["ctrl-access.css"],
+    "run_at": "document_end",
+    "all_frames": true
+  }
+  ]
+}
