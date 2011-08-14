@@ -1,7 +1,6 @@
 var preferences = {
-  "allow_uppercase": true,
-  "allow_numbers": true,
-  "optimize_for_dvorak": false
+  "shortcut_keys": "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789",
+  "only_one_char": true,
 };
 
 chrome.extension.sendRequest({method: "getLocalStoragePrefs"},
@@ -23,14 +22,12 @@ function getAllowedKeys() {
   var prefs = getPreferences();
   // Ad-hoc reordering of the alphabet which moves "easy-to-type" keys to the
   // front. Keys that look similar have been removed (I, l and 1, 0 and O).
-  var allKeys = prefs.optimize_for_dvorak ?
-      "ueoahtnsidpgcrqjkwvmbxyfzUEAHTNSDPGCRLQJKVWMBXYFZ23456789".split("") :
-      "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789".split("");
-  if (!prefs.allow_uppercase) {
-    allKeys = allKeys.filter(function(c) { return c == c.toLowerCase(); });
-  }
-  if (!prefs.allow_numbers) {
-    allKeys = allKeys.filter(function(c) { return !/[0-9]/.check(c); });
+  var pref_set = prefs.shortcut_keys.split("");
+  var allKeys = [];
+  // Remove duplicates.
+  for (var i = 0; i < pref_set.length; i++) {
+    var c = pref_set[i];
+    if (allKeys.indexOf(c) == -1) allKeys.push(c);
   }
   return allKeys;
 }
@@ -225,7 +222,7 @@ function showShortcuts() {
   // array.
   for (var i = 0; i < allElements.length; i++) {
     var el = allElements[i];
-    if (isElementOrChildInViewport(el) && isClickable(el) && !el.accessKey) {
+    if (isClickable(el) && !el.accessKey && isElementOrChildInViewport(el)) {
       visibleElements.push(el);
     }
   }
@@ -338,6 +335,10 @@ function isShortcutPrefix(sequence) {
   return false;
 }
 
+function replaceWhitespace(str) {
+  return str.replace(/ /g, "␣");
+}
+
 function updatePopups(sequence) {
   for (var shortcut in shortcutMap) {
     var popups = shortcutMap[shortcut].popups;
@@ -348,15 +349,16 @@ function updatePopups(sequence) {
       // Set the correct className and text.
       if (isActive) {
         var boldSpan = document.createElement('b');
-        var boldTxt = document.createTextNode(sequence);
+        var boldTxt = document.createTextNode(replaceWhitespace(sequence));
         boldSpan.appendChild(boldTxt);
-        var unmatchedShortcut = shortcut.substring(sequence.length);
+        var unmatchedShortcut =
+            replaceWhitespace(shortcut.substring(sequence.length));
         var unmatchedText = document.createTextNode(unmatchedShortcut);
         popup.appendChild(boldSpan);
         popup.appendChild(unmatchedText);
         popup.className = 'ctrl_access_popup';
       } else {
-        var txt = document.createTextNode(shortcut);
+        var txt = document.createTextNode(replaceWhitespace(shortcut));
         popup.appendChild(txt);
         popup.className = 'ctrl_access_popup_inactive';
       }
