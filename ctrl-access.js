@@ -46,6 +46,7 @@ function isClickable(el) {
          el.onmousedown ||
          el.tagName == 'A' ||
          el.tagName == 'INPUT' ||
+         el.tagName == 'BUTTON' ||
          el.tagName == 'TEXTAREA';
 }
 
@@ -148,10 +149,7 @@ function computePreferredShortcuts(el) {
   // Simply mark characters that are after a space as preferred.
   // We might return a string that contains duplicate chars. Should not be a
   // problem.
-  var str = el.textContent;
-  if (!str) { str = el.alt; }
-  if (!str) { str = el.name; }
-  if (!str) { str = el.id; }
+  var str = el.textContent || el.value || el.alt || el.name || el.id;
   if (!str) return [];
   str = str.toLowerCase();
   var preferred = [];
@@ -162,7 +160,7 @@ function computePreferredShortcuts(el) {
       continue;
     }
     if (nextIsPreferred) {
-      preferred.push(normalizeChar(str[i]));
+      preferred.push(str[i]);
     }
     nextIsPreferred = false;
   }
@@ -196,6 +194,15 @@ function showShortcuts() {
                      remainingLength - 1, keySequences);
       }
     }
+  }
+
+  function removeFromArray(array, el) {
+    removeFromArrayAt(array, array.indexOf(el));
+  }
+
+  function removeFromArrayAt(array, i) {
+    array[i] = array[array.length - 1];
+    array.length--;
   }
 
   var assignedShortcuts = {};  // A set of all assigned chars.
@@ -232,9 +239,61 @@ function showShortcuts() {
           if (pattern.shortcut) {
             assignAndShowShortcut(el, pattern.shortcut);
           }
-          allElements[allElements.indexOf(el)] =
-              allElements[allElements.length - 1];
-          allElements.length--;
+          removeFromArray(allElements, el);
+        }
+      } else if (pattern.name) {
+        var els = document.getElementsByName(pattern.name);
+        if (pattern.shortcut) {
+          // We only assign the shortcut to the first element.
+          if (els.length > 0) {
+            assignAndShowShortcut(els[0], pattern.shortcut);
+            removeFromArray(allElements, els[0]);
+          }
+        } else {
+          // But we remove all elements if the shortcut is the empty string.
+          for (var i = 0; i < els.length; i++)
+            removeFromArray(allElements, els[i]);
+        }
+      } else if (pattern.text) {
+        function matchesText(el, text) {
+          var str = el.textContent || el.value;
+          return str === text;
+        }
+
+        if (!pattern.shortcut) {
+          // Simply remove all elements that match the text.
+          var i = 0;
+          while (i < allElements.length) {
+            if (matchesText(allElements[i], pattern.text)) {
+              removeFromArrayAt(allElements[i]);
+            } else {
+              i++;
+            }
+          }
+        } else {
+          // We only look for the first matching element. Priority to clickable
+          // elements.
+          var foundElement = false;
+          // First try elements that are clickable.
+          for (var i = 0; i < allElements.length; i++) {
+            var el = allElements[i];
+            if (isClickable(el) && matchesText(el, pattern.text)) {
+              foundElement = true;
+              assignAndShowShortcut(el, pattern.shortcut);
+              removeFromArrayAt(allElements, i);
+            }
+          }
+          if (!foundElement) {
+            // Now try non-clickable (at least according to our heuristic)
+            // elements.
+            for (var i = 0; i < allElements.length; i++) {
+              var el = allElements[i];
+              if (!isClickable(el) && matchesText(el, pattern.text)) {
+                assignAndShowShortcut(el, pattern.shortcut);
+                removeFromArrayAt(allElements, i);
+              }
+            }
+          }
         }
       }
     });
@@ -242,11 +301,24 @@ function showShortcuts() {
     // Just ignore any exceptions due to user input.
   }
 
+  function isPrefixOrSuffixOfUsedShortcut(sequence) {
+    for (var used in assignedShortcuts) {
+      if (used.indexOf(sequence) == 0) return true;
+      if (sequence.indexOf(used) == 0) return true;
+    }
+    return false;
+  }
+
   // Then get accessKeys that have been declared by the site.
-  for (var i = 0; i < allElements.length; i++) {
+  var i = 0;
+  while (i < allElements.length) {
     var el = allElements[i];
-    if (!el.accessKey) continue;
+    if (!el.accessKey || isPrefixOrSuffixOfUsedShortcut(el.accessKey)) {
+      i++;
+      continue;
+    }
     var el = allElements[i];
+    removeFromArrayAt(allElements, i);
     assignAndShowShortcut(el, el.accessKey);
   }
 
@@ -297,6 +369,11 @@ function showShortcuts() {
       addSequences(c, allowedKeys, sequenceLength - 1, keySequences);
     }
   }
+  // Remove suffix and prefixes. This might lead to too few sequences, but
+  // it should not happen too often.
+  keySequences = keySequences.filter(function(seq) {
+    return !isPrefixOrSuffixOfUsedShortcut(seq);
+  });
   var nextFree = 0;
 
   // Now find all links, text-fields and buttons.
@@ -316,6 +393,7 @@ function showShortcuts() {
       for (var j = 0; j < preferred.length; j++) {
         var c = preferred[j];
         var index = keySequences.indexOf(c);
+        if (index == -1) index = keySequences.indexOf(normalizeChar(c));
         if (index != -1) {
           shortcut = c;
           keySequences[index] = null;

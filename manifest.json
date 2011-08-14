@@ -1,7 +1,7 @@
 {
   "name": "ctrl-access",
   "version": "0.1",
-  "description": "Enable Access shortcuts using ctrl-keypresses.",
+  "description": "Navigate to links with the ctrl-key.",
   "permissions": ["tabs"],
   "background_page": "bg.html",
   "content_scripts": [
