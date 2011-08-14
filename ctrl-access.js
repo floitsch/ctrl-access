@@ -14,6 +14,7 @@ function getPreferences() {
 }
 
 var keycodes = {
+  backspace: 8,
   shift: 16,
   control: 17
 };
@@ -121,6 +122,19 @@ function inViewport(el, pos) {
       isElementAtPosition(el, rightBottomPos);
 }
 
+function isElementOrChildInViewport(el) {
+  var pos = computeAbsolutePosition(el);
+  if (inViewport(el, pos)) return true;
+  // I have seen cases, where the link itself was size 0,0, but the child was
+  // visible. So try at least one child, if that's the case.
+  if ((el.offsetWidth == 0 || el.offsetHeight == 0) &&
+      el.children.length > 0) {
+    return (inViewport(el.children[0],
+                        computeAbsolutePosition(el.children[0])));
+  }
+  return false;
+}
+
 function normalizeChar(c) {
   // Hacky way of removing umlauts and accents...
   var map = { 'á': 'a', 'ä': 'a', 'à': 'a', 'â': 'a', 'å': 'a',
@@ -136,7 +150,6 @@ function computePreferredShortcuts(el) {
   // Simply mark characters that are after a space as preferred.
   // We might return a string that contains duplicate chars. Should not be a
   // problem.
-  if (el.accessKey) return el.accessKey;
   var str = el.textContent;
   if (!str) { str = el.alt; }
   if (!str) { str = el.name; }
@@ -159,34 +172,34 @@ function computePreferredShortcuts(el) {
   return preferred.concat(str.split("").map(normalizeChar));
 }
 
-var popups = [];
 var shortcutMap = {};
 
 function createAndShowPopup(el, shortcut) {
   var pos = computeAbsolutePosition(el);
-  if (!inViewport(el, pos)) {
-    // I have seen cases, where the link itself was size 0,0, but the child was
-    // visible. So try at least one child, if that's the case.
-    if ((el.offsetWidth == 0 || el.offsetHeight == 0) &&
-        el.children.length > 0) {
-      return createAndShowPopup(el.children[0], shortcut);
-    }
-    return false;
-  }
-
   var div = document.createElement('div');
-  var txt = document.createTextNode(shortcut);
-  div.appendChild(txt);
-  div.className = 'ctrl_access_popup';
   div.style.left = pos.x + "px";
   div.style.top = pos.y + "px";
   document.body.appendChild(div);
-  popups.push(div);
-  if (!(shortcut in shortcutMap)) { shortcutMap[shortcut] = el; }
-  return true;
+  if (!(shortcut in shortcutMap)) {
+    shortcutMap[shortcut] = { 'el': el, 'popups': [div] };
+  } else {
+    shortcutMap[shortcut].popups.push(div);
+  }
 }
 
 function showShortcuts() {
+  // Adds secquence + allowedKeys^remainingLength to keySequences.
+  function addSequences(sequence, allowedKeys, remainingLength, keySequences) {
+    if (remainingLength <= 0) {
+      keySequences.push(sequence);
+    } else {
+      for (var i = 0; i < allowedKeys.length; i++) {
+        addSequences(sequence + allowedKeys[i], allowedKeys,
+                     remainingLength - 1, keySequences);
+      }
+    }
+  }
+
   var assignedShortcuts = {};  // A set of all assigned chars.
   var urlMap = {}; // A map from url to shortcut.
 
@@ -206,12 +219,58 @@ function showShortcuts() {
     }
   }
 
+  // visibleElements doesn't contain the elements with accessKeys anymore.
+  var visibleElements = [];
+  // We can't use the filter method, because allElements is not a JavaScript
+  // array.
+  for (var i = 0; i < allElements.length; i++) {
+    var el = allElements[i];
+    if (isElementOrChildInViewport(el) && isClickable(el) && !el.accessKey) {
+      visibleElements.push(el);
+    }
+  }
+
+  var visibleDistinctCount = 0;
+  var distinctHrefs = {};
+  for (var i = 0; i < visibleElements.length; i++) {
+    var el = visibleElements[i];
+    if (el.tagName == 'A') {
+       if (el.href in distinctHrefs) continue;
+       distinctHrefs[el.href] = true;
+    }
+    visibleDistinctCount++;
+  }
+  distinctHrefs = null;
+
   var allowedKeys = getAllowedKeys();
+  var freeKeys = allowedKeys.filter(function(c) {
+    return !(c in assignedShortcuts);
+  });
+
+  var sequenceLength = 1;
+  var maxLength = getPreferences().only_one_char ? 1 : 3;
+  var coveredPopus = freeKeys.length;
+  while (sequenceLength < maxLength &&
+         coveredPopus < visibleDistinctCount) {
+    sequenceLength++;
+    coveredPopus *= allowedKeys.length;
+  }
+
+  var keySequences;
+  if (sequenceLength == 1) {
+    keySequences = freeKeys.concat([]);
+  } else {
+    keySequences = [];
+    for (var i = 0; i < freeKeys.length; i++) {
+      var c = freeKeys[i];
+      addSequences(c, allowedKeys, sequenceLength - 1, keySequences);
+    }
+  }
+  var nextFree = 0;
 
   // Now find all links, text-fields and buttons.
-  for (var i = 0; i < allElements.length; ++i) {
-    var el = allElements[i];
-    if (el.accessKey) continue;
+  for (var i = 0; i < visibleElements.length; ++i) {
+    var el = visibleElements[i];
 
     if (el.nodeName == 'A') {
       if (el.href in urlMap) {
@@ -219,59 +278,97 @@ function showShortcuts() {
         continue;
       }
     }
-    if (isClickable(el)) {
-      var preferred = computePreferredShortcuts(el).filter(function(c) {
-        // Filter out the keys that are not allowed.
-        return allowedKeys.some(function(c2) { return c == c2; });
-      });
-      // "possible" will probably have duplicated entries.
-      var possible = preferred.concat(allowedKeys);
-      var shortcut = false;
-      for (var j = 0; j < possible.length; ++j) {
-        var c = possible[j];
-        if (c && !(c in assignedShortcuts)) {
-          // We found a free character.
+
+    var shortcut = false;
+    if (sequenceLength == 1) {
+      var preferred = computePreferredShortcuts(el);
+      for (var j = 0; j < preferred.length; j++) {
+        var c = preferred[j];
+        var index = keySequences.indexOf(c);
+        if (index != -1) {
           shortcut = c;
+          keySequences[index] = null;
           break;
         }
       }
-      if (shortcut === false) {
-        // Argh. no free character left.
-        // No need to continue cycling through the other elements.
+    }
+    if (!shortcut) {
+      // Just pick the first free one.
+      while (nextFree < keySequences.length &&
+             keySequences[nextFree] == null) nextFree++;
+      if (nextFree >= keySequences.length) {
+        // No free sequence left. Don't continue cycling through the remaining
+        // visible elements.
         break;
       }
-      var isShown = createAndShowPopup(el, shortcut);
-      if (!isShown) continue;
-      assignedShortcuts[shortcut] = true;
-      if (el.nodeName == 'A') {
-        urlMap[el.href] = shortcut;
-      }
+      shortcut = keySequences[nextFree];
+      // Clear the chosen keySequence so that the preferred search above doesn't
+      // find it again.
+      keySequences[nextFree++] = null;
+    }
+    createAndShowPopup(el, shortcut);
+    assignedShortcuts[shortcut] = true;
+    if (el.nodeName == 'A') {
+      urlMap[el.href] = shortcut;
     }
   }
+  // Update classname and texts of popups.
+  updatePopups("");
 }
 
 function hideShortcuts() {
-  for (var i = 0; i < popups.length; ++i) {
-    document.body.removeChild(popups[i]);
+  for (var shortcut in shortcutMap) {
+    var popups = shortcutMap[shortcut].popups;
+    for (var j = 0; j < popups.length; j++) {
+      document.body.removeChild(popups[j]);
+    }
   }
-  popups = [];
   shortcutMap = {};
 }
 
-function findShortcutTarget(code, shift) {
-  var key = String.fromCharCode(code);
-  if (shift) {
-    key = key.toUpperCase();
-  } else {
-    key = key.toLowerCase();
+function findShortcutTarget(sequence) {
+  var shortcutInfo = shortcutMap[sequence];
+  return shortcutInfo ? shortcutInfo.el : false;
+}
+
+function isShortcutPrefix(sequence) {
+  for (var shortcut in shortcutMap) {
+    if (shortcut.indexOf(sequence) == 0) return true;
   }
-  return shortcutMap[key];
+  return false;
+}
+
+function updatePopups(sequence) {
+  for (var shortcut in shortcutMap) {
+    var popups = shortcutMap[shortcut].popups;
+    var isActive = (shortcut.indexOf(sequence) == 0);
+    popups.forEach(function(popup) {
+      // Remove all children.
+      while (popup.firstChild) popup.removeChild(popup.firstChild);
+      // Set the correct className and text.
+      if (isActive) {
+        var boldSpan = document.createElement('b');
+        var boldTxt = document.createTextNode(sequence);
+        boldSpan.appendChild(boldTxt);
+        var unmatchedShortcut = shortcut.substring(sequence.length);
+        var unmatchedText = document.createTextNode(unmatchedShortcut);
+        popup.appendChild(boldSpan);
+        popup.appendChild(unmatchedText);
+        popup.className = 'ctrl_access_popup';
+      } else {
+        var txt = document.createTextNode(shortcut);
+        popup.appendChild(txt);
+        popup.className = 'ctrl_access_popup_inactive';
+      }
+    });
+  }
 }
 
 function init() {
   var isShowingShortcuts = false;
   var isWaitingForCtrlUp = false;
-  var justExecutedCtrlClick = false;
+  var consumeNextKeyUp = false;
+  var sequence = "";
 
   function installEventListeners(rootNode) {
     var doc = rootNode.contentDocument || rootNode;
@@ -282,7 +379,7 @@ function init() {
     }
 
     body.addEventListener('keydown', function(ev) {
-      justExecutedCtrlClick = false;
+      consumeNextKeyUp = false;
       var code = ev.keyCode;
       if (code == keycodes.control) {
         isWaitingForCtrlUp = true;
@@ -293,10 +390,25 @@ function init() {
       ev.stopPropagation();
       ev.preventDefault();
       if (code == keycodes.shift) return;
-      var target = findShortcutTarget(ev.keyCode, ev.shiftKey);
-      isShowingShortcuts = false;
-      hideShortcuts();
-      justExecutedCtrlClick = true;
+      if (code == keycodes.backspace) {
+        sequence = sequence.substring(0, sequence.length - 1);
+      } else {
+        var key = String.fromCharCode(ev.keyCode);
+        if (ev.shiftKey) {
+          sequence += key.toUpperCase();
+        } else {
+          sequence += key.toLowerCase();
+        }
+      }
+      var target = findShortcutTarget(sequence);
+      if (!target && isShortcutPrefix(sequence)) {
+        updatePopups(sequence);
+      } else {
+        sequence = "";
+        isShowingShortcuts = false;
+        hideShortcuts();
+      }
+      consumeNextKeyUp = true;
       if (target) simulateClick(target);
     }, true);
 
@@ -305,6 +417,7 @@ function init() {
       if (code == keycodes.control) {
         if (isWaitingForCtrlUp) {
           if (isShowingShortcuts) {
+            sequence = "";
             hideShortcuts();
           }
           isShowingShortcuts = !isShowingShortcuts;
@@ -316,7 +429,7 @@ function init() {
         }
       } else {
         isWaitingForCtrlUp = false;
-        if (justExecutedCtrlClick) {
+        if (consumeNextKeyUp) {
           ev.stopPropagation();
           ev.preventDefault();
         }
@@ -325,6 +438,7 @@ function init() {
 
     var mouseHandler = function(ev) {
       if (isShowingShortcuts) {
+        sequence = "";
         hideShortcuts();
       }
       isShowingShortcuts = false;
