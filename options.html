@@ -10,9 +10,15 @@ var saveIsEnabled = false;
 
 function save() {
   if (!saveIsEnabled) return;
-  var prefs = {}; // JSON.parse(localStorage.prefs);
+  var prefs = JSON.parse(localStorage.prefs);
   prefs.shortcut_keys = document.getElementById("shortcut_keys").value;
   prefs.only_one_char = document.getElementById("one_char").checked;
+  localStorage.prefs = JSON.stringify(prefs);
+}
+
+function saveHardcoded() {
+  var prefs = JSON.parse(localStorage.prefs);
+  prefs.hardcoded = document.getElementById("hardcoded").value;
   localStorage.prefs = JSON.stringify(prefs);
 }
 
@@ -24,6 +30,7 @@ window.onload = function() {
   document.getElementById("shortcut_keys").value =
       prefs.shortcut_keys || defaultShortcutKeys;
   document.getElementById("one_char").checked = prefs.only_one_char;
+  document.getElementById("hardcoded").value = prefs.hardcoded || "";
   saveIsEnabled = true;
 }
 
@@ -35,10 +42,24 @@ function resetShortcutKeys() {
 </head>
 <body>
 <h2>Options for the Ctrl-Access extension</h2>
-Shortcut keys: <input id="shortcut_keys" type="text" size=80 onChange="save()">
+Shortcut keys:
+<input id="shortcut_keys" type="text" size=80 onChange="save()"></input>
 <button onclick="resetShortcutKeys()">Reset to default</button><br/>
 Only allow one character shortcuts:
-    <input id="one_char" type="checkbox" onclick="save()">
+    <input id="one_char" type="checkbox" onclick="save()"><br/>
+<hr>
+Hardcoded shortcuts (advanced):<br/>
+A JS array of
+ { url: &lt;regexp&gt;, id: &lt;DOM id&gt;, name: &lt;DOM name&gt;,
+text: &lt;text-content&gt;, shortcut: &lt;"shortcut-string"&gt; }.<br/>
+ The <code>id</code>, <code>name</code> and
+<code>text</code> fields are mutually exclusive. If the <code>shortcut</code> is
+the empty string, then the matched element will not have any popup.</br>
+The provided string in the text-area will be <code>eval</code>ed inside the
+page.</br>
+<textarea id="hardcoded" type="textarea" cols="80" rows="25">
+</textarea><br/>
+<button onclick="saveHardcoded()">Apply</button>
 
 </body>
 </html>

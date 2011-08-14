@@ -1,5 +1,6 @@
 var preferences = {
   "shortcut_keys": "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789",
+  "hardcoded": "",
   "only_one_char": true,
 };
 
@@ -200,20 +201,53 @@ function showShortcuts() {
   var assignedShortcuts = {};  // A set of all assigned chars.
   var urlMap = {}; // A map from url to shortcut.
 
-  // First get accessKeys that have been declared by the site.
-  var allElements = document.getElementsByTagName("*");
+  function assignAndShowShortcut(el, shortcut) {
+    assignedShortcuts[shortcut] = true;
+    createAndShowPopup(el, shortcut);
+    if (el.tagName == 'A') {
+      var href = el.href;
+      if (!(href in urlMap)) {
+        urlMap[href] = shortcut;
+      }
+    }
+  }
+
+  // I prefer working with real arrays.
+  var tmp = document.getElementsByTagName("*");
+  var allElements = [];
+  for (var i = 0; i < tmp.length; i++) { allElements.push(tmp[i]); };
+
+  // First get hardcoded refs.
+  try {
+    var hardcoded = new Function("return " + getPreferences().hardcoded)();
+    var thisUrl = document.location.href;
+    // Filter out the hardcoded patterns that are not for this page.
+    var hardcoded = hardcoded.filter(function(pattern) {
+      return pattern.url.test(thisUrl);
+    });
+    hardcoded.forEach(function(pattern) {
+      if (pattern.id) {
+        var el = document.getElementById(pattern.id);
+        if (el) {
+          if (pattern.shortcut) {
+            assignAndShowShortcut(el, pattern.shortcut);
+          }
+          allElements[allElements.indexOf(el)] =
+              allElements[allElements.length - 1];
+          allElements.length--;
+        }
+      }
+    });
+  } catch(e) {
+    // Just ignore any exceptions due to user input.
+  }
+
+  // Then get accessKeys that have been declared by the site.
   for (var i = 0; i < allElements.length; i++) {
     var el = allElements[i];
     if (!el.accessKey) continue;
     var el = allElements[i];
-    assignedShortcuts[el.accessKey] = true;
-    createAndShowPopup(el, el.accessKey);
-    if (el.tagName == 'A') {
-      var href = el.href;
-      if (!(href in urlMap)) {
-        urlMap[href] = el.accessKey
-      }
-    }
+    assignAndShowShortcut(el, el.accessKey);
   }
 
   // visibleElements doesn't contain the elements with accessKeys anymore.
@@ -303,11 +337,7 @@ function showShortcuts() {
       // find it again.
       keySequences[nextFree++] = null;
     }
-    createAndShowPopup(el, shortcut);
-    assignedShortcuts[shortcut] = true;
-    if (el.nodeName == 'A') {
-      urlMap[el.href] = shortcut;
-    }
+    assignAndShowShortcut(el, shortcut);
   }
   // Update classname and texts of popups.
   updatePopups("");
