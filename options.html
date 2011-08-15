@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html>
 <head>
 <script>
@@ -8,16 +9,24 @@ var defaultShortcutKeys =
 
 var saveIsEnabled = false;
 
+function getStoredPrefs() {
+  try {
+    return JSON.parse(localStorage.prefs);
+  } catch(e) {
+    return {};
+  }
+}
+
 function save() {
   if (!saveIsEnabled) return;
-  var prefs = JSON.parse(localStorage.prefs);
+  var prefs = getStoredPrefs();
   prefs.shortcut_keys = document.getElementById("shortcut_keys").value;
   prefs.only_one_char = document.getElementById("one_char").checked;
   localStorage.prefs = JSON.stringify(prefs);
 }
 
 function saveHardcoded() {
-  var prefs = JSON.parse(localStorage.prefs);
+  var prefs = getStoredPrefs();
   prefs.hardcoded = document.getElementById("hardcoded").value;
   localStorage.prefs = JSON.stringify(prefs);
 }
@@ -26,7 +35,7 @@ function saveHardcoded() {
 // saved preference.
 window.onload = function() {
   saveIsEnabled = false;
-  var prefs = JSON.parse(localStorage.prefs);
+  var prefs = getStoredPrefs();
   document.getElementById("shortcut_keys").value =
       prefs.shortcut_keys || defaultShortcutKeys;
   document.getElementById("one_char").checked = prefs.only_one_char;

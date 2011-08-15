@@ -1,6 +1,6 @@
 {
   "name": "ctrl-access",
-  "version": "0.1",
+  "version": "0.2",
   "description": "Navigate to links with the ctrl-key.",
   "permissions": ["tabs"],
   "background_page": "bg.html",
