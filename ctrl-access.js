@@ -1,4 +1,11 @@
+var keycodes = {
+  backspace: 8,
+  shift: 16,
+  control: 17
+};
+
 var preferences = {
+  "trigger": keycodes.control,
   "shortcut_keys": "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789",
   "hardcoded": "",
   "only_one_char": true,
@@ -12,12 +19,6 @@ chrome.extension.sendRequest({method: "getLocalStoragePrefs"},
 function getPreferences() {
   return preferences;
 }
-
-var keycodes = {
-  backspace: 8,
-  shift: 16,
-  control: 17
-};
 
 function getAllowedKeys() {
   var prefs = getPreferences();
@@ -476,7 +477,7 @@ function updatePopups(sequence) {
 
 function init() {
   var isShowingShortcuts = false;
-  var isWaitingForCtrlUp = false;
+  var isWaitingForTriggerUp = false;
   var consumeNextKeyUp = false;
   var sequence = "";
 
@@ -491,11 +492,11 @@ function init() {
     body.addEventListener('keydown', function(ev) {
       consumeNextKeyUp = false;
       var code = ev.keyCode;
-      if (code == keycodes.control) {
-        isWaitingForCtrlUp = true;
+      if (code == getPreferences().trigger) {
+        isWaitingForTriggerUp = true;
         return;
       }
-      isWaitingForCtrlUp = false;
+      isWaitingForTriggerUp = false;
       if (!isShowingShortcuts) return;
       ev.stopPropagation();
       ev.preventDefault();
@@ -524,21 +525,21 @@ function init() {
 
     body.addEventListener('keyup', function(ev) {
       var code = ev.keyCode;
-      if (code == keycodes.control) {
-        if (isWaitingForCtrlUp) {
+      if (code == getPreferences().trigger) {
+        if (isWaitingForTriggerUp) {
           if (isShowingShortcuts) {
             sequence = "";
             hideShortcuts();
           }
           isShowingShortcuts = !isShowingShortcuts;
+          if (isShowingShortcuts) {
+            showShortcuts();
+          }
           ev.stopPropagation();
           ev.preventDefault();
         }
-        if (isShowingShortcuts) {
-          showShortcuts();
-        }
       } else {
-        isWaitingForCtrlUp = false;
+        isWaitingForTriggerUp = false;
         if (consumeNextKeyUp) {
           ev.stopPropagation();
           ev.preventDefault();
@@ -552,7 +553,7 @@ function init() {
         hideShortcuts();
       }
       isShowingShortcuts = false;
-      isWaitingForCtrlUp = false;
+      isWaitingForTriggerUp = false;
     };
 
     body.addEventListener('mousedown', mouseHandler, false);

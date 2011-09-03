@@ -20,6 +20,7 @@ function getStoredPrefs() {
 function save() {
   if (!saveIsEnabled) return;
   var prefs = getStoredPrefs();
+  prefs.trigger = document.getElementById("trigger").value;
   prefs.shortcut_keys = document.getElementById("shortcut_keys").value;
   prefs.only_one_char = document.getElementById("one_char").checked;
   localStorage.prefs = JSON.stringify(prefs);
@@ -36,6 +37,7 @@ function saveHardcoded() {
 window.onload = function() {
   saveIsEnabled = false;
   var prefs = getStoredPrefs();
+  document.getElementById("trigger").value = prefs.trigger || 17;
   document.getElementById("shortcut_keys").value =
       prefs.shortcut_keys || defaultShortcutKeys;
   document.getElementById("one_char").checked = prefs.only_one_char;
@@ -51,6 +53,19 @@ function resetShortcutKeys() {
 </head>
 <body>
 <h2>Options for the Ctrl-Access extension</h2>
+Trigger key:
+<select id="trigger" onChange="save()">
+  <option value="17">Control</option>
+  <option value="18">Alt</option>
+  <option value="16">Shift</option>
+  <option value="27">Escape</option>
+  <option value="113">F2</option>
+  <option value="115">F4</option>
+  <option value="118">F7</option>
+  <option value="119">F8</option>
+  <option value="120">F9</option>
+  <option value="121">F10</option>
+</select></br>
 Shortcut keys:
 <input id="shortcut_keys" type="text" size=80 onChange="save()"></input>
 <button onclick="resetShortcutKeys()">Reset to default</button><br/>
@@ -68,7 +83,7 @@ The provided string in the text-area will be <code>eval</code>ed inside the
 page.</br>
 <textarea id="hardcoded" type="textarea" cols="80" rows="25">
 </textarea><br/>
-<button onclick="saveHardcoded()">Apply</button>
+<button onclick="saveHardcoded()">Apply Shortcuts</button>
 
 </body>
 </html>
