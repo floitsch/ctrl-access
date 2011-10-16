@@ -7,13 +7,15 @@ var keycodes = {
 var preferences = {
   "trigger": keycodes.control,
   "shortcut_keys": "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789",
-  "hardcoded": "",
+  "hardcoded": "[]",
   "only_one_char": true,
 };
 
 chrome.extension.sendRequest({method: "getLocalStoragePrefs"},
                              function(response) {
-  preferences = JSON.parse(response.prefs);
+  if (response.prefs) {
+    preferences = JSON.parse(response.prefs);
+  }
 });
 
 function getPreferences() {

@@ -37,12 +37,17 @@ function saveHardcoded() {
 window.onload = function() {
   saveIsEnabled = false;
   var prefs = getStoredPrefs();
+  var firstTime = !prefs;
   document.getElementById("trigger").value = prefs.trigger || 17;
   document.getElementById("shortcut_keys").value =
       prefs.shortcut_keys || defaultShortcutKeys;
   document.getElementById("one_char").checked = prefs.only_one_char;
   document.getElementById("hardcoded").value = prefs.hardcoded || "";
   saveIsEnabled = true;
+  if (firstTime) {
+    save();
+    saveHardcoded();
+  }
 }
 
 function resetShortcutKeys() {
@@ -54,7 +59,7 @@ function resetShortcutKeys() {
 <body>
 <h2>Options for the Ctrl-Access extension</h2>
 Trigger key:
-<select id="trigger" onChange="save()">
+<select id="trigger" onchange="save()">
   <option value="17">Control</option>
   <option value="18">Alt</option>
   <option value="16">Shift</option>
@@ -67,7 +72,7 @@ Trigger key:
   <option value="121">F10</option>
 </select></br>
 Shortcut keys:
-<input id="shortcut_keys" type="text" size=80 onChange="save()"></input>
+<input id="shortcut_keys" type="text" size=80 oninput="save()"></input>
 <button onclick="resetShortcutKeys()">Reset to default</button><br/>
 Only allow one character shortcuts:
     <input id="one_char" type="checkbox" onclick="save()"><br/>
