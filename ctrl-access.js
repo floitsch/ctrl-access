@@ -498,8 +498,6 @@ function addEventAttachmentInterceptor(document) {
       Element.prototype.addEventListener = function(type) {\
         if (type === 'click') {\
           this.setAttribute('" + clickHandlerToken + "', true);" +
-//          Object.defineProperty(this, '" + clickHandlerToken +
-//          "', {value: true});" +
         "}\
         return original.apply(this, arguments);\
       }\
