@@ -1,1 +1,6 @@
-Picture comes from http://www.wpclipart.com/computer/keyboard_keys/computer_key_Ctrl.png.html (public domain).
+This chrome extension allows to navigate to links with a trigger key (by
+default the ctrl-key). In many cases this removes the need for a mouse.
+This extension is a copy of Konqueror's access-key functionality.
+
+Icons are under public domain and have been copied from
+http://www.wpclipart.com/computer/keyboard_keys/computer_key_Ctrl.png.html.
