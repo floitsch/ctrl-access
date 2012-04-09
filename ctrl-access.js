@@ -47,7 +47,7 @@ function simulateClick(el) {
 }
 
 function hasJavaScriptClickHandler(el) {
-  return !!(el.onclick ||
+  return !!(el.onclick || el.onmousedown ||
             ((typeof el.getAttribute == 'function') &&
              el.getAttribute(clickHandlerToken)));
 }
@@ -496,7 +496,7 @@ function addEventAttachmentInterceptor(document) {
   var injectedCode =
     "(function(original) {\
       Element.prototype.addEventListener = function(type) {\
-        if (type === 'click') {\
+        if (type === 'click' || type === 'mousedown') {\
           this.setAttribute('" + clickHandlerToken + "', true);" +
         "}\
         return original.apply(this, arguments);\
