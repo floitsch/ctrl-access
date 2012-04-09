@@ -11,6 +11,8 @@ var preferences = {
   "only_one_char": true,
 };
 
+var clickHandlerToken = ("_ctrlAccess" + Math.random()).replace(/\./, "");
+
 chrome.extension.sendRequest({method: "getLocalStoragePrefs"},
                              function(response) {
   if (response.prefs) {
@@ -44,9 +46,14 @@ function simulateClick(el) {
   el.dispatchEvent(event);
 }
 
+function hasJavaScriptClickHandler(el) {
+  return !!(el.onclick ||
+            ((typeof el.getAttribute == 'function') &&
+             el.getAttribute(clickHandlerToken)));
+}
+
 function isClickable(el) {
-  return el.onclick ||
-         el.onmousedown ||
+  return hasJavaScriptClickHandler(el) ||
          el.tagName == 'A' ||
          el.tagName == 'INPUT' ||
          el.tagName == 'BUTTON' ||
@@ -214,6 +221,8 @@ function showShortcuts() {
   function assignAndShowShortcut(el, shortcut) {
     assignedShortcuts[shortcut] = true;
     createAndShowPopup(el, shortcut);
+    // JavaScript handlers can (and often do) changet the target of the link.
+    if (hasJavaScriptClickHandler(el)) return;
     if (el.tagName == 'A') {
       var href = el.href;
       if (!(href in urlMap)) {
@@ -340,6 +349,8 @@ function showShortcuts() {
   var distinctHrefs = {};
   for (var i = 0; i < visibleElements.length; i++) {
     var el = visibleElements[i];
+    // JavaScript handlers can (and often do) override the target of links.
+    if (hasJavaScriptClickHandler(el)) continue;
     if (el.tagName == 'A') {
        if (el.href in distinctHrefs) continue;
        distinctHrefs[el.href] = true;
@@ -383,7 +394,7 @@ function showShortcuts() {
   for (var i = 0; i < visibleElements.length; ++i) {
     var el = visibleElements[i];
 
-    if (el.nodeName == 'A') {
+    if (el.nodeName == 'A' && !hasJavaScriptClickHandler(el)) {
       if (el.href in urlMap) {
         createAndShowPopup(el, urlMap[el.href]);
         continue;
@@ -475,6 +486,29 @@ function updatePopups(sequence) {
       }
     });
   }
+}
+
+// There is no way to know if a DOM element has an event listener attached to
+// it. We have to intercept when event listeners are attached.
+// Since the extension's and the page's site are sandboxed we have to go
+// through the DOM to execute our code in the page's environment.
+function addEventAttachmentInterceptor(document) {
+  var injectedCode =
+    "(function(original) {\
+      Element.prototype.addEventListener = function(type) {\
+        if (type === 'click') {\
+          this.setAttribute('" + clickHandlerToken + "', true);" +
+//          Object.defineProperty(this, '" + clickHandlerToken +
+//          "', {value: true});" +
+        "}\
+        return original.apply(this, arguments);\
+      }\
+    })(Element.prototype.addEventListener);";
+  var script = document.createElement("script");
+  script.type = "text/javascript";
+  script.appendChild(document.createTextNode(injectedCode));
+  document.documentElement.appendChild(script);
+  document.documentElement.removeChild(script);
 }
 
 function init() {
@@ -575,6 +609,8 @@ function init() {
       installEventListeners(rootNode);
     }
   }
+
+  addEventAttachmentInterceptor(document);
 }
 
 init();

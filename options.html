@@ -22,7 +22,7 @@ function save() {
   var prefs = getStoredPrefs();
   prefs.trigger = document.getElementById("trigger").value;
   prefs.shortcut_keys = document.getElementById("shortcut_keys").value;
-  prefs.only_one_char = document.getElementById("one_char").checked;
+  prefs.only_one_char = !document.getElementById("multi_char").checked;
   localStorage.prefs = JSON.stringify(prefs);
 }
 
@@ -37,12 +37,18 @@ function saveHardcoded() {
 window.onload = function() {
   saveIsEnabled = false;
   var prefs = getStoredPrefs();
-  var firstTime = !prefs;
-  document.getElementById("trigger").value = prefs.trigger || 17;
-  document.getElementById("shortcut_keys").value =
-      prefs.shortcut_keys || defaultShortcutKeys;
-  document.getElementById("one_char").checked = prefs.only_one_char;
-  document.getElementById("hardcoded").value = prefs.hardcoded || "";
+  var firstTime = (typeof(prefs.trigger) === "undefined");
+
+  var trigger = firstTime ? 17 : prefs.trigger;  // Control by default.
+  var shortcut_keys = firstTime ? defaultShortcutKeys : prefs.shortcut_keys;
+  var multi_char = firstTime ? false : !prefs.only_one_char;
+  var hardcoded = firstTime ? "" : prefs.hardcoded;
+
+  document.getElementById("trigger").value = trigger;
+  document.getElementById("shortcut_keys").value = shortcut_keys;
+  document.getElementById("multi_char").checked = multi_char;
+  document.getElementById("hardcoded").value = hardcoded;
+
   saveIsEnabled = true;
   if (firstTime) {
     save();
@@ -74,8 +80,8 @@ Trigger key:
 Shortcut keys:
 <input id="shortcut_keys" type="text" size=80 oninput="save()"></input>
 <button onclick="resetShortcutKeys()">Reset to default</button><br/>
-Only allow one character shortcuts:
-    <input id="one_char" type="checkbox" onclick="save()"><br/>
+Allow multi-character shortcuts:
+    <input id="multi_char" type="checkbox" onclick="save()"><br/>
 <hr>
 Hardcoded shortcuts (advanced):<br/>
 A JS array of
