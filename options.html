@@ -21,8 +21,14 @@ function save() {
   if (!saveIsEnabled) return;
   var prefs = getStoredPrefs();
   prefs.trigger = document.getElementById("trigger").value;
+  prefs.trigger_newtab = document.getElementById("trigger_newtab").value;
   prefs.shortcut_keys = document.getElementById("shortcut_keys").value;
   prefs.only_one_char = !document.getElementById("multi_char").checked;
+  if (prefs.trigger == prefs.trigger_newtab) {
+    alert("Trigger key and trigger key to open link in new tab shouldn't " +
+        "be same.");
+    return false;
+  }
   localStorage.prefs = JSON.stringify(prefs);
 }
 
@@ -68,6 +74,19 @@ Trigger key:
 <select id="trigger" onchange="save()">
   <option value="17">Control</option>
   <option value="18">Alt</option>
+  <option value="16">Shift</option>
+  <option value="27">Escape</option>
+  <option value="113">F2</option>
+  <option value="115">F4</option>
+  <option value="118">F7</option>
+  <option value="119">F8</option>
+  <option value="120">F9</option>
+  <option value="121">F10</option>
+</select></br>
+Trigger key to open link in new tab:
+<select id="trigger_newtab" onchange="save()">
+  <option value="17">Control</option>
+  <option value="18" selected="selected">Alt</option>
   <option value="16">Shift</option>
   <option value="27">Escape</option>
   <option value="113">F2</option>

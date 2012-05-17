@@ -1,17 +1,20 @@
 var keycodes = {
   backspace: 8,
   shift: 16,
-  control: 17
+  control: 17,
+  alt: 18
 };
 
 var preferences = {
   "trigger": keycodes.control,
+  "trigger_newtab": keycodes.alt,
   "shortcut_keys": "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789",
   "hardcoded": "[]",
   "only_one_char": true,
 };
 
 var clickHandlerToken = ("_ctrlAccess" + Math.random()).replace(/\./, "");
+var openInNewTab = false;
 
 chrome.extension.sendRequest({method: "getLocalStoragePrefs"},
                              function(response) {
@@ -41,8 +44,8 @@ function getAllowedKeys() {
 function simulateClick(el) {
   el.focus();
   var event = document.createEvent("MouseEvents");
-  event.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false,
-                       false, false, false, 0, null);
+  event.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0,
+                       openInNewTab, false, false, false, 0, null);
   el.dispatchEvent(event);
 }
 
@@ -57,7 +60,9 @@ function isClickable(el) {
          el.tagName == 'A' ||
          el.tagName == 'INPUT' ||
          el.tagName == 'BUTTON' ||
-         el.tagName == 'TEXTAREA';
+         el.tagName == 'TEXTAREA' ||
+         typeof el.getAttribute == 'function' &&
+             (el.getAttribute('role') == 'button' || el.getAttribute('role') == 'link');
 }
 
 function computeCssProperty(el, prop) {
@@ -112,6 +117,8 @@ function inViewport(el, pos) {
   if (pos.y > window.pageYOffset + window.innerHeight) return false;
   if (pos.x + width < window.pageXOffset) return false;
   if (pos.y + height < window.pageYOffset) return false;
+
+  return true;
   // Get element at point and verify that a click on this point would lead to
   // the expected element.
   // Note: if there is an intercepting element, then consider this element not
@@ -119,16 +126,16 @@ function inViewport(el, pos) {
   // anyways.
   // For links that break over two lines just picking the middle point might not
   // be enough. we therefore try 4 other points.
-  var centerPos = { x: pos.x + width / 2, y: pos.y + height / 2 };
-  var leftTopPos = { x: pos.x + 1, y: pos.y + 1 };
-  var rightTopPos = { x: pos.x + width - 1, y: pos.y + 1 };
-  var leftBottomPos = { x: pos.x + 1, y: pos.y + height - 1 };
-  var rightBottomPos = { x: pos.x + width - 1, y: pos.y + height - 1 };
-  return isElementAtPosition(el, centerPos) ||
-      isElementAtPosition(el, leftTopPos) ||
-      isElementAtPosition(el, rightTopPos) ||
-      isElementAtPosition(el, leftBottomPos) ||
-      isElementAtPosition(el, rightBottomPos);
+  // var centerPos = { x: pos.x + width / 2, y: pos.y + height / 2 };
+  // var leftTopPos = { x: pos.x + 1, y: pos.y + 1 };
+  // var rightTopPos = { x: pos.x + width - 1, y: pos.y + 1 };
+  // var leftBottomPos = { x: pos.x + 1, y: pos.y + height - 1 };
+  // var rightBottomPos = { x: pos.x + width - 1, y: pos.y + height - 1 };
+  // return isElementAtPosition(el, centerPos) ||
+  //     isElementAtPosition(el, leftTopPos) ||
+  //     isElementAtPosition(el, rightTopPos) ||
+  //     isElementAtPosition(el, leftBottomPos) ||
+  //     isElementAtPosition(el, rightBottomPos);
 }
 
 function isElementOrChildInViewport(el) {
@@ -478,7 +485,11 @@ function updatePopups(sequence) {
         var unmatchedText = document.createTextNode(unmatchedShortcut);
         popup.appendChild(boldSpan);
         popup.appendChild(unmatchedText);
-        popup.className = 'ctrl_access_popup';
+        if (openInNewTab) {
+          popup.className = 'ctrl_access_newtab_popup';
+        } else {
+          popup.className = 'ctrl_access_popup'; 
+        }
       } else {
         var txt = document.createTextNode(replaceWhitespace(shortcut));
         popup.appendChild(txt);
@@ -514,6 +525,7 @@ function init() {
   var isWaitingForTriggerUp = false;
   var consumeNextKeyUp = false;
   var sequence = "";
+  var trigger_key;
 
   function installEventListeners(rootNode) {
     var doc = rootNode.contentDocument || rootNode;
@@ -526,8 +538,10 @@ function init() {
     body.addEventListener('keydown', function(ev) {
       consumeNextKeyUp = false;
       var code = ev.keyCode;
-      if (code == getPreferences().trigger) {
+      if (code == getPreferences().trigger ||
+          code == getPreferences().trigger_newtab) {
         isWaitingForTriggerUp = true;
+        trigger_key = code;
         return;
       }
       isWaitingForTriggerUp = false;
@@ -559,14 +573,20 @@ function init() {
 
     body.addEventListener('keyup', function(ev) {
       var code = ev.keyCode;
-      if (code == getPreferences().trigger) {
+      if (code == trigger_key) {
         if (isWaitingForTriggerUp) {
           if (isShowingShortcuts) {
-            sequence = "";
-            hideShortcuts();
-          }
-          isShowingShortcuts = !isShowingShortcuts;
-          if (isShowingShortcuts) {
+            if (openInNewTab == (code == getPreferences().trigger_newtab)) {
+              sequence = "";
+              hideShortcuts();
+              isShowingShortcuts = false;              
+            } else {
+              openInNewTab = code == getPreferences().trigger_newtab;
+              updatePopups(sequence);
+            }
+          } else {
+            isShowingShortcuts = true; 
+            openInNewTab = code == getPreferences().trigger_newtab;
             showShortcuts();
           }
           ev.stopPropagation();
