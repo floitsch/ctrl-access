@@ -41,11 +41,29 @@ function getAllowedKeys() {
   return allKeys;
 }
 
+function runningInMac() {
+  return navigator.appVersion.indexOf("Mac") != -1;
+}
+
 function simulateClick(el) {
   el.focus();
   var event = document.createEvent("MouseEvents");
+  var mod_keys = {
+    "ctrl": false,
+    "alt": false,
+    "shift": false,
+    "meta": false
+  };
+  if (openInNewTab) {
+    if (runningInMac()) {
+      mod_keys.meta = true;
+    } else {
+      mod_keys.ctrl = true;
+    }
+  }
   event.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0,
-                       openInNewTab, false, false, false, 0, null);
+                       mod_keys.ctrl, mod_keys.alt, mod_keys.shift,
+                       mod_keys.meta, 0, null);
   el.dispatchEvent(event);
 }
 
