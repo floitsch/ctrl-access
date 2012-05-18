@@ -93,23 +93,10 @@ function computeCssProperty(el, prop) {
 }
 
 function computeAbsolutePosition(el) {
-  var pos =  { x: el.offsetLeft, y: el.offsetTop };
-  while (el.offsetParent) {
-    el = el.offsetParent;
-    if (computeCssProperty(el, 'position') == 'fixed') {
-      pos.x += window.pageXOffset;
-      pos.y += window.pageYOffset;
-      break;
-    }
-    pos.x += el.offsetLeft;
-    pos.y += el.offsetTop;
-    if (el != document.body &&
-        el != document.documentElement) {
-      pos.x -= el.scrollLeft;
-      pos.y -= el.scrollTop;
-    }
-  }
-  return pos;
+  return {
+    "x": $(el).offset().left,
+    "y": $(el).offset().top
+  };
 }
 
 function isElementAtPosition(el, pos) {

@@ -9,7 +9,7 @@
   "content_scripts": [
   {
     "matches": ["*://*/*"],
-    "js": ["ctrl-access.js"],
+    "js": ["jquery-1.7.2.min.js", "ctrl-access.js"],
     "css": ["ctrl-access.css"],
     "run_at": "document_end",
     "all_frames": true
