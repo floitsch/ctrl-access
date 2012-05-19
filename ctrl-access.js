@@ -123,7 +123,6 @@ function inViewport(el, pos) {
   if (pos.x + width < window.pageXOffset) return false;
   if (pos.y + height < window.pageYOffset) return false;
 
-  return true;
   // Get element at point and verify that a click on this point would lead to
   // the expected element.
   // Note: if there is an intercepting element, then consider this element not
@@ -131,16 +130,16 @@ function inViewport(el, pos) {
   // anyways.
   // For links that break over two lines just picking the middle point might not
   // be enough. we therefore try 4 other points.
-  // var centerPos = { x: pos.x + width / 2, y: pos.y + height / 2 };
-  // var leftTopPos = { x: pos.x + 1, y: pos.y + 1 };
-  // var rightTopPos = { x: pos.x + width - 1, y: pos.y + 1 };
-  // var leftBottomPos = { x: pos.x + 1, y: pos.y + height - 1 };
-  // var rightBottomPos = { x: pos.x + width - 1, y: pos.y + height - 1 };
-  // return isElementAtPosition(el, centerPos) ||
-  //     isElementAtPosition(el, leftTopPos) ||
-  //     isElementAtPosition(el, rightTopPos) ||
-  //     isElementAtPosition(el, leftBottomPos) ||
-  //     isElementAtPosition(el, rightBottomPos);
+  var centerPos = { x: pos.x + width / 2, y: pos.y + height / 2 };
+  var leftTopPos = { x: pos.x + 1, y: pos.y + 1 };
+  var rightTopPos = { x: pos.x + width - 1, y: pos.y + 1 };
+  var leftBottomPos = { x: pos.x + 1, y: pos.y + height - 1 };
+  var rightBottomPos = { x: pos.x + width - 1, y: pos.y + height - 1 };
+  return isElementAtPosition(el, centerPos) ||
+      isElementAtPosition(el, leftTopPos) ||
+      isElementAtPosition(el, rightTopPos) ||
+      isElementAtPosition(el, leftBottomPos) ||
+      isElementAtPosition(el, rightBottomPos);
 }
 
 function isElementOrChildInViewport(el) {
