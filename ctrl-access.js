@@ -27,6 +27,7 @@ var preferences = {
   "shortcut_keys": "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789",
   "hardcoded": "[]",
   "only_one_char": true,
+  "newtab_only_when_triggered": false
 };
 
 var clickHandlerToken = ("_ctrlAccess" + Math.random()).replace(/\./, "");
@@ -559,7 +560,8 @@ function init() {
       consumeNextKeyUp = false;
       var code = ev.keyCode;
       if (code == getPreferences().trigger ||
-          code == getPreferences().trigger_newtab) {
+          (code == getPreferences().trigger_newtab &&
+           (isShowingShortcuts || !getPreferences().newtab_only_when_triggered))) {
         isWaitingForTriggerUp = true;
         trigger_key = code;
         return;

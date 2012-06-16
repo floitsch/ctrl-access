@@ -24,6 +24,7 @@ function save() {
   prefs.trigger_newtab = document.getElementById("trigger_newtab").value;
   prefs.shortcut_keys = document.getElementById("shortcut_keys").value;
   prefs.only_one_char = !document.getElementById("multi_char").checked;
+  prefs.newtab_only_when_triggered = document.getElementById("newtab_only_when_triggered").checked;
   if (prefs.trigger == prefs.trigger_newtab) {
     alert("Trigger key and trigger key to open link in new tab shouldn't " +
         "be same.");
@@ -46,13 +47,17 @@ window.onload = function() {
   var firstTime = (typeof(prefs.trigger) === "undefined");
 
   var trigger = firstTime ? 17 : prefs.trigger;  // Control by default.
+  var trigger_newtab = firstTime ? 18 : prefs.trigger_newtab;  // Alt by default.
   var shortcut_keys = firstTime ? defaultShortcutKeys : prefs.shortcut_keys;
   var multi_char = firstTime ? false : !prefs.only_one_char;
+  var newtab_only_when_triggered = firstTime ? false : prefs.newtab_only_when_triggered;
   var hardcoded = firstTime ? "" : prefs.hardcoded;
 
   document.getElementById("trigger").value = trigger;
+  document.getElementById("trigger_newtab").value = trigger_newtab;
   document.getElementById("shortcut_keys").value = shortcut_keys;
   document.getElementById("multi_char").checked = multi_char;
+  document.getElementById("newtab_only_when_triggered").checked = newtab_only_when_triggered;
   document.getElementById("hardcoded").value = hardcoded;
 
   saveIsEnabled = true;
@@ -72,6 +77,7 @@ function resetShortcutKeys() {
 <h2>Options for the Ctrl-Access extension</h2>
 Trigger key:
 <select id="trigger" onchange="save()">
+  <option value="-1">None</option>
   <option value="17">Control</option>
   <option value="18">Alt</option>
   <option value="16">Shift</option>
@@ -85,6 +91,7 @@ Trigger key:
 </select></br>
 Trigger key to open link in new tab:
 <select id="trigger_newtab" onchange="save()">
+  <option value="-1">None</option>
   <option value="17">Control</option>
   <option value="18" selected="selected">Alt</option>
   <option value="16">Shift</option>
@@ -95,7 +102,10 @@ Trigger key to open link in new tab:
   <option value="119">F8</option>
   <option value="120">F9</option>
   <option value="121">F10</option>
-</select></br>
+</select>
+only active after normal trigger
+<input id="newtab_only_when_triggered" type="checkbox" onclick="save()"></input>
+</br>
 Shortcut keys:
 <input id="shortcut_keys" type="text" size=80 oninput="save()"></input>
 <button onclick="resetShortcutKeys()">Reset to default</button><br/>
