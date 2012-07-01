@@ -1,6 +1,6 @@
 {
   "name": "ctrl-access",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Navigate to links with a trigger key (by default the ctrl-key).",
   "icons": { "48": "icon48.png",
              "128": "icon128.png" },

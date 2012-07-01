@@ -50,14 +50,16 @@ window.onload = function() {
   var trigger_newtab = firstTime ? 18 : prefs.trigger_newtab;  // Alt by default.
   var shortcut_keys = firstTime ? defaultShortcutKeys : prefs.shortcut_keys;
   var multi_char = firstTime ? false : !prefs.only_one_char;
-  var newtab_only_when_triggered = firstTime ? false : prefs.newtab_only_when_triggered;
+  var newtab_only_when_triggered =
+      firstTime ? false : prefs.newtab_only_when_triggered;
   var hardcoded = firstTime ? "" : prefs.hardcoded;
 
   document.getElementById("trigger").value = trigger;
   document.getElementById("trigger_newtab").value = trigger_newtab;
   document.getElementById("shortcut_keys").value = shortcut_keys;
   document.getElementById("multi_char").checked = multi_char;
-  document.getElementById("newtab_only_when_triggered").checked = newtab_only_when_triggered;
+  document.getElementById("newtab_only_when_triggered").checked =
+      newtab_only_when_triggered;
   document.getElementById("hardcoded").value = hardcoded;
 
   saveIsEnabled = true;
@@ -77,7 +79,6 @@ function resetShortcutKeys() {
 <h2>Options for the Ctrl-Access extension</h2>
 Trigger key:
 <select id="trigger" onchange="save()">
-  <option value="-1">None</option>
   <option value="17">Control</option>
   <option value="18">Alt</option>
   <option value="16">Shift</option>
