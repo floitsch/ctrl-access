@@ -586,8 +586,13 @@ function init() {
         updatePopups(sequence);
       } else {
         sequence = "";
-        isShowingShortcuts = false;
-        hideShortcuts();
+        var stillShowShortcuts = target && openInNewTab;
+        if (stillShowShortcuts) {
+          updatePopups(sequence);
+        } else {
+          isShowingShortcuts = false;
+          hideShortcuts();
+        }
       }
       consumeNextKeyUp = true;
       if (target) simulateClick(target);
