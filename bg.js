@@ -1,4 +1,3 @@
-<script>
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   if (request.method == "getLocalStoragePrefs") {
     var t = localStorage['prefs'];
@@ -6,4 +5,3 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   } else
     sendResponse({});  // Nothing to see.
 });
-</script>
