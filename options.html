@@ -2,83 +2,12 @@
 
 <html>
 <head>
-<script>
-
-var defaultShortcutKeys =
-    "fjdkeisawoghurcmnvtbyqzxpFJDKESLAWGHURCMNVTBYQZXP23456789";
-
-var saveIsEnabled = false;
-
-function getStoredPrefs() {
-  try {
-    return JSON.parse(localStorage.prefs);
-  } catch(e) {
-    return {};
-  }
-}
-
-function save() {
-  if (!saveIsEnabled) return;
-  var prefs = getStoredPrefs();
-  prefs.trigger = document.getElementById("trigger").value;
-  prefs.trigger_newtab = document.getElementById("trigger_newtab").value;
-  prefs.shortcut_keys = document.getElementById("shortcut_keys").value;
-  prefs.only_one_char = !document.getElementById("multi_char").checked;
-  prefs.newtab_only_when_triggered = document.getElementById("newtab_only_when_triggered").checked;
-  if (prefs.trigger == prefs.trigger_newtab) {
-    alert("Trigger key and trigger key to open link in new tab shouldn't " +
-        "be same.");
-    return false;
-  }
-  localStorage.prefs = JSON.stringify(prefs);
-}
-
-function saveHardcoded() {
-  var prefs = getStoredPrefs();
-  prefs.hardcoded = document.getElementById("hardcoded").value;
-  localStorage.prefs = JSON.stringify(prefs);
-}
-
-// Make sure the checkbox checked state gets properly initialized from the
-// saved preference.
-window.onload = function() {
-  saveIsEnabled = false;
-  var prefs = getStoredPrefs();
-  var firstTime = (typeof(prefs.trigger) === "undefined");
-
-  var trigger = firstTime ? 17 : prefs.trigger;  // Control by default.
-  var trigger_newtab = firstTime ? 18 : prefs.trigger_newtab;  // Alt by default.
-  var shortcut_keys = firstTime ? defaultShortcutKeys : prefs.shortcut_keys;
-  var multi_char = firstTime ? false : !prefs.only_one_char;
-  var newtab_only_when_triggered =
-      firstTime ? false : prefs.newtab_only_when_triggered;
-  var hardcoded = firstTime ? "" : prefs.hardcoded;
-
-  document.getElementById("trigger").value = trigger;
-  document.getElementById("trigger_newtab").value = trigger_newtab;
-  document.getElementById("shortcut_keys").value = shortcut_keys;
-  document.getElementById("multi_char").checked = multi_char;
-  document.getElementById("newtab_only_when_triggered").checked =
-      newtab_only_when_triggered;
-  document.getElementById("hardcoded").value = hardcoded;
-
-  saveIsEnabled = true;
-  if (firstTime) {
-    save();
-    saveHardcoded();
-  }
-}
-
-function resetShortcutKeys() {
-  document.getElementById('shortcut_keys').value = defaultShortcutKeys;
-}
-
-</script>
+<script type="text/javascript" src='options.js'></script>
 </head>
 <body>
 <h2>Options for the Ctrl-Access extension</h2>
 Trigger key:
-<select id="trigger" onchange="save()">
+<select id="trigger">
   <option value="17">Control</option>
   <option value="18">Alt</option>
   <option value="16">Shift</option>
@@ -91,7 +20,7 @@ Trigger key:
   <option value="121">F10</option>
 </select></br>
 Trigger key to open link in new tab:
-<select id="trigger_newtab" onchange="save()">
+<select id="trigger_newtab">
   <option value="-1">None</option>
   <option value="17">Control</option>
   <option value="18" selected="selected">Alt</option>
@@ -105,13 +34,13 @@ Trigger key to open link in new tab:
   <option value="121">F10</option>
 </select>
 only active after normal trigger
-<input id="newtab_only_when_triggered" type="checkbox" onclick="save()"></input>
+<input id="newtab_only_when_triggered" type="checkbox"></input>
 </br>
 Shortcut keys:
-<input id="shortcut_keys" type="text" size=80 oninput="save()"></input>
-<button onclick="resetShortcutKeys()">Reset to default</button><br/>
+<input id="shortcut_keys" type="text" size=80></input>
+<button id="reset_to_default">Reset to default</button><br/>
 Allow multi-character shortcuts:
-    <input id="multi_char" type="checkbox" onclick="save()"><br/>
+    <input id="multi_char" type="checkbox"><br/>
 <hr>
 Hardcoded shortcuts (advanced):<br/>
 A JS array of
@@ -124,7 +53,7 @@ The provided string in the text-area will be <code>eval</code>ed inside the
 page.</br>
 <textarea id="hardcoded" type="textarea" cols="80" rows="25">
 </textarea><br/>
-<button onclick="saveHardcoded()">Apply Shortcuts</button>
+<button id='save_hardcoded'>Apply Shortcuts</button>
 
 </body>
 </html>
