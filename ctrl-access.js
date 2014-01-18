@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Max time for key-down -> key-up of trigger key. Significantly reduces
+// false positives.
+var MAX_TRIGGER_DURATION = 100;
+
 var keycodes = {
   backspace: 8,
   shift: 16,
@@ -597,6 +601,10 @@ function init() {
         }
       }
       consumeNextKeyUp = true;
+      if (openInNewTab) {
+        hideShortcuts();
+        isShowingShortcuts = false;
+      }
       if (target) simulateClick(target);
     }, true);
 
@@ -617,7 +625,7 @@ function init() {
             var triggerDuration = new Date().getTime() - triggerDownTime;
             // If it took too long to get the trigger-key up, we assume that it
             // was accidental.
-            if (triggerDuration > 100) {
+            if (triggerDuration > MAX_TRIGGER_DURATION) {
               isWaitingForTripperUp = false;
               return;  // Don't stop propagation.
             } else {
