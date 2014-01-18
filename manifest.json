@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "ctrl-access",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "Navigate to links with a trigger key (by default the ctrl-key).",
   "icons": { "48": "icon48.png",
              "128": "icon128.png" },

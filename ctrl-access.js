@@ -544,6 +544,7 @@ function addEventAttachmentInterceptor(document) {
 function init() {
   var isShowingShortcuts = false;
   var isWaitingForTriggerUp = false;
+  var triggerDownTime;
   var consumeNextKeyUp = false;
   var sequence = "";
   var trigger_key;
@@ -563,6 +564,7 @@ function init() {
           (code == getPreferences().trigger_newtab &&
            (isShowingShortcuts || !getPreferences().newtab_only_when_triggered))) {
         isWaitingForTriggerUp = true;
+        triggerDownTime = new Date().getTime();
         trigger_key = code;
         return;
       }
@@ -606,15 +608,23 @@ function init() {
             if (openInNewTab == (code == getPreferences().trigger_newtab)) {
               sequence = "";
               hideShortcuts();
-              isShowingShortcuts = false;              
+              isShowingShortcuts = false;
             } else {
               openInNewTab = code == getPreferences().trigger_newtab;
               updatePopups(sequence);
             }
           } else {
-            isShowingShortcuts = true; 
-            openInNewTab = code == getPreferences().trigger_newtab;
-            showShortcuts();
+            var triggerDuration = new Date().getTime() - triggerDownTime;
+            // If it took too long to get the trigger-key up, we assume that it
+            // was accidental.
+            if (triggerDuration > 100) {
+              isWaitingForTripperUp = false;
+              return;  // Don't stop propagation.
+            } else {
+              isShowingShortcuts = true;
+              openInNewTab = code == getPreferences().trigger_newtab;
+              showShortcuts();
+            }
           }
           ev.stopPropagation();
           ev.preventDefault();
