@@ -567,8 +567,14 @@ function init() {
       if (code == getPreferences().trigger ||
           (code == getPreferences().trigger_newtab &&
            (isShowingShortcuts || !getPreferences().newtab_only_when_triggered))) {
-        isWaitingForTriggerUp = true;
-        triggerDownTime = new Date().getTime();
+        // Only reset the trigger time, if we are not yet waiting for a trigger.
+        // Some platforms (ChromeOS, MacOS or Windows) repeatedly send an event
+        // when the key is pressed down.
+        // See https://code.google.com/p/chromium/issues/detail?id=435520
+        if (!isWaitingForTriggerUp) {
+          triggerDownTime = new Date().getTime();
+          isWaitingForTriggerUp = true;
+        }
         trigger_key = code;
         return;
       }
@@ -610,8 +616,10 @@ function init() {
 
     body.addEventListener('keyup', function(ev) {
       var code = ev.keyCode;
+      var currentlyWaitingForTriggerUp = isWaitingForTriggerUp;
+      isWaitingForTriggerUp = false;
       if (code == trigger_key) {
-        if (isWaitingForTriggerUp) {
+        if (currentlyWaitingForTriggerUp) {
           if (isShowingShortcuts) {
             if (openInNewTab == (code == getPreferences().trigger_newtab)) {
               sequence = "";
@@ -638,7 +646,6 @@ function init() {
           ev.preventDefault();
         }
       } else {
-        isWaitingForTriggerUp = false;
         if (consumeNextKeyUp) {
           ev.stopPropagation();
           ev.preventDefault();
