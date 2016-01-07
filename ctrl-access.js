@@ -16,7 +16,7 @@ limitations under the License.
 
 // Max time for key-down -> key-up of trigger key. Significantly reduces
 // false positives.
-var MAX_TRIGGER_DURATION = 100;
+var MAX_TRIGGER_DURATION = 200;
 
 var keycodes = {
   backspace: 8,
