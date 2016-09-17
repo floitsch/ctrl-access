@@ -633,14 +633,15 @@ function init() {
             var triggerDuration = new Date().getTime() - triggerDownTime;
             // If it took too long to get the trigger-key up, we assume that it
             // was accidental.
-            if (triggerDuration > MAX_TRIGGER_DURATION) {
+            // Make sure we don't deal with NaNs, if triggerDownTime was never
+            // set.
+            if (!triggerDownTime || triggerDuration > MAX_TRIGGER_DURATION) {
               isWaitingForTripperUp = false;
               return;  // Don't stop propagation.
-            } else {
-              isShowingShortcuts = true;
-              openInNewTab = code == getPreferences().trigger_newtab;
-              showShortcuts();
             }
+            isShowingShortcuts = true;
+            openInNewTab = code == getPreferences().trigger_newtab;
+            showShortcuts();
           }
           ev.stopPropagation();
           ev.preventDefault();
