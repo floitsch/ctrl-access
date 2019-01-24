@@ -137,6 +137,7 @@ function isElementAtPosition(el, pos) {
 function inViewport(el, pos) {
   var width = el.offsetWidth;
   var height = el.offsetHeight;
+  if (width === undefined || height === undefined) return false;
   // Not sure if this is always correct, but in many cases it is.
   if (pos.x < 0 || pos.y < 0) return false;
   if (pos.x > window.pageXOffset + window.innerWidth) return false;
