@@ -91,7 +91,9 @@ function simulateClick(el) {
 function hasJavaScriptClickHandler(el) {
   return !!(el.onclick || el.onmousedown ||
             ((typeof el.getAttribute == 'function') &&
-             el.getAttribute(clickHandlerToken)));
+              (el.getAttribute("onclick") ||           // 'onclick' in html.
+               el.getAttribute("onmousedown") ||       // 'onmousedown' in html.
+               el.getAttribute(clickHandlerToken))));  // dymanically added clickhandler.
 }
 
 function isClickable(el) {
