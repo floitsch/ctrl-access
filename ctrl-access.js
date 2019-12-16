@@ -22,7 +22,7 @@ var keycodes = {
   backspace: 8,
   shift: 16,
   control: 17,
-  alt: 18
+  alt: 18,
 };
 
 var preferences = {
@@ -516,7 +516,7 @@ function updatePopups(sequence) {
         if (openInNewTab) {
           popup.className = 'ctrl_access_newtab_popup';
         } else {
-          popup.className = 'ctrl_access_popup'; 
+          popup.className = 'ctrl_access_popup';
         }
       } else {
         var txt = document.createTextNode(replaceWhitespace(shortcut));
@@ -586,7 +586,7 @@ function init() {
       ev.stopPropagation();
       ev.preventDefault();
       if (code == keycodes.shift) return;
-      if (code == keycodes.backspace) {
+      if (code == keycodes.backspace && sequence.length > 0) {
         sequence = sequence.substring(0, sequence.length - 1);
       } else {
         var key = String.fromCharCode(ev.keyCode);
